@@ -16,6 +16,10 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Models\User;
+use App\Models\Category;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Illuminate\Support\Str;
 
 class PostResource extends Resource
 {
@@ -30,10 +34,18 @@ class PostResource extends Resource
         return $form
             ->schema([
                 TextInput::make('title')
-                    ->required(),
+                ->live()
+                ->afterStateUpdated(function (Get $get, Set $set, ?string $old, ?string $state) {
+                    if (($get('slug') ?? '') !== Str::slug($old)) {
+                        return;
+                    }
+                    $set('slug', Str::slug($state));
+                }),
                 TextInput::make('slug')
                     ->required()
                     ->unique(),
+                Select::make('category_id')
+                    ->relationship('category', 'name'),
                 MarkdownEditor::make('content')
                     ->required(),
                 TextInput::make('status')
@@ -48,6 +60,7 @@ class PostResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('title'),
+                Tables\Columns\TextColumn::make('category.name'),
                 Tables\Columns\TextColumn::make('status'),
                 Tables\Columns\TextColumn::make('author.name'),
             ])
